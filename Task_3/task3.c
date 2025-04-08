@@ -1,73 +1,43 @@
+// task3.c
 #include <stdio.h>
+#include <unistd.h>
+#include <sys/wait.h>
 #include <stdlib.h>
-#include <windows.h>
-
-int process_count = 1; // Start with the initial parent process
-
-void create_child_if_odd(DWORD pid) {
-    if (pid % 2 == 1) { // Check if the PID is odd
-        STARTUPINFO si;
-        PROCESS_INFORMATION pi;
-        
-        ZeroMemory(&si, sizeof(si));
-        si.cb = sizeof(si);
-        ZeroMemory(&pi, sizeof(pi));
-
-        if (CreateProcess(NULL, "cmd.exe /c echo New child process created", NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
-            process_count++; // Increment process count
-            WaitForSingleObject(pi.hProcess, INFINITE);
-            CloseHandle(pi.hProcess);
-            CloseHandle(pi.hThread);
-        } else {
-            fprintf(stderr, "Failed to create new child process.\n");
-        }
-    }
-}
 
 int main() {
-    STARTUPINFO siA, siB, siC;
-    PROCESS_INFORMATION piA, piB, piC;
+    int count = 1; // initial parent process
 
-    // Initialize structures
-    ZeroMemory(&siA, sizeof(siA));
-    siA.cb = sizeof(siA);
-    ZeroMemory(&piA, sizeof(piA));
-
-    ZeroMemory(&siB, sizeof(siB));
-    siB.cb = sizeof(siB);
-    ZeroMemory(&piB, sizeof(piB));
-
-    ZeroMemory(&siC, sizeof(siC));
-    siC.cb = sizeof(siC);
-    ZeroMemory(&piC, sizeof(piC));
-
-    // Create three child processes
-    if (CreateProcess(NULL, "cmd.exe /c echo Child A created", NULL, NULL, FALSE, 0, NULL, NULL, &siA, &piA)) {
-        process_count++;
-        create_child_if_odd(piA.dwProcessId);
-        WaitForSingleObject(piA.hProcess, INFINITE);
-        CloseHandle(piA.hProcess);
-        CloseHandle(piA.hThread);
+    pid_t a = fork();
+    if (a == 0) {
+        // Child
+    } else if (a > 0) {
+        count++;
     }
 
-    if (CreateProcess(NULL, "cmd.exe /c echo Child B created", NULL, NULL, FALSE, 0, NULL, NULL, &siB, &piB)) {
-        process_count++;
-        create_child_if_odd(piB.dwProcessId);
-        WaitForSingleObject(piB.hProcess, INFINITE);
-        CloseHandle(piB.hProcess);
-        CloseHandle(piB.hThread);
+    pid_t b = fork();
+    if (b == 0) {
+        // Child
+    } else if (b > 0) {
+        count++;
     }
 
-    if (CreateProcess(NULL, "cmd.exe /c echo Child C created", NULL, NULL, FALSE, 0, NULL, NULL, &siC, &piC)) {
-        process_count++;
-        create_child_if_odd(piC.dwProcessId);
-        WaitForSingleObject(piC.hProcess, INFINITE);
-        CloseHandle(piC.hProcess);
-        CloseHandle(piC.hThread);
+    pid_t c = fork();
+    if (c == 0) {
+        // Child
+    } else if (c > 0) {
+        count++;
     }
 
-    // Parent process prints the total count
-    printf("Total processes created: %d\n", process_count);
+    pid_t pid = getpid();
+    if (pid % 2 != 0) {
+        fork(); // create a new child if PID is odd
+        count++;
+    }
 
+    sleep(1); // let all processes finish
+    if (getppid() > 1) // to prevent printing from zombie processes
+        printf("Process ID: %d, Parent ID: %d\n", getpid(), getppid());
+
+    wait(NULL);
     return 0;
 }

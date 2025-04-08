@@ -1,48 +1,25 @@
+// task2.c
 #include <stdio.h>
-#include <windows.h>
+#include <unistd.h>
+#include <sys/wait.h>
 
 int main() {
-    STARTUPINFO siChild, siGrandchild;
-    PROCESS_INFORMATION piChild, piGrandchild;
+    pid_t child_pid, grandchild_pid;
 
-    // Initialize memory for child process structures
-    ZeroMemory(&siChild, sizeof(siChild));
-    siChild.cb = sizeof(siChild);
-    ZeroMemory(&piChild, sizeof(piChild));
+    child_pid = fork();
 
-    // Initialize memory for grandchild process structures
-    ZeroMemory(&siGrandchild, sizeof(siGrandchild));
-    siGrandchild.cb = sizeof(siGrandchild);
-    ZeroMemory(&piGrandchild, sizeof(piGrandchild));
-
-    // Create the grandchild process first
-    if (!CreateProcess(NULL, "cmd.exe /c echo I am grandchild", NULL, NULL, FALSE, 0, NULL, NULL, &siGrandchild, &piGrandchild)) {
-        fprintf(stderr, "Error creating grandchild process.\n");
-        return 1;
+    if (child_pid == 0) { // Child process
+        grandchild_pid = fork();
+        if (grandchild_pid == 0) { // Grandchild
+            printf("I am grandchild\n");
+        } else {
+            wait(NULL); // Wait for grandchild
+            printf("I am child\n");
+        }
+    } else { // Parent process
+        wait(NULL); // Wait for child
+        printf("I am parent\n");
     }
-
-    // Wait for the grandchild process to complete
-    WaitForSingleObject(piGrandchild.hProcess, INFINITE);
-
-    // Close grandchild process handles
-    CloseHandle(piGrandchild.hProcess);
-    CloseHandle(piGrandchild.hThread);
-
-    // Create the child process
-    if (!CreateProcess(NULL, "cmd.exe /c echo I am child", NULL, NULL, FALSE, 0, NULL, NULL, &siChild, &piChild)) {
-        fprintf(stderr, "Error creating child process.\n");
-        return 1;
-    }
-
-    // Wait for the child process to complete
-    WaitForSingleObject(piChild.hProcess, INFINITE);
-
-    // Close child process handles
-    CloseHandle(piChild.hProcess);
-    CloseHandle(piChild.hThread);
-
-    // The parent process prints its message
-    printf("I am parent\n");
 
     return 0;
 }
